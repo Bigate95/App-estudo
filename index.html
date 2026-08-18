@@ -374,5 +374,6 @@ async function installApp(){if(!deferredInstall)return;deferredInstall.prompt();
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));}
 load();
 </script>
+<script src="./sync.js"></script>
 </body>
 </html>
