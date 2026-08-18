@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0f172a">
+<title>Controle de Estudos V4</title>
+<style>
+:root{--bg:#f1f5f9;--card:#fff;--text:#0f172a;--muted:#64748b;--primary:#2563eb;--line:#e2e8f0;--ok:#16a34a;--warn:#d97706;--bad:#dc2626;--dark:#0f172a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+header{background:linear-gradient(135deg,#0f172a,#1e293b);color:#fff;padding:16px}.wrap,main{max-width:1180px;margin:auto}header .wrap{display:flex;justify-content:space-between;gap:12px;align-items:center}
+h1{font-size:21px;margin:0}h2{font-size:18px;margin:0 0 12px}h3{font-size:15px;margin:0 0 6px}
+button{border:0;border-radius:10px;padding:9px 12px;font-weight:750;cursor:pointer}.primary{background:var(--primary);color:#fff}.secondary{background:#e2e8f0;color:#0f172a}.danger{background:#fee2e2;color:#991b1b}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.title{display:flex;justify-content:space-between;align-items:center;gap:8px}
+main{padding:16px 14px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.two{grid-template-columns:1fr 1fr}.three{grid-template-columns:repeat(3,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px}.metric{font-size:27px;font-weight:800}.muted{color:var(--muted);font-size:13px}
+.bar{height:10px;background:#e2e8f0;border-radius:999px;overflow:hidden}.bar>div{height:100%;background:var(--primary)}
+table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid var(--line);font-size:13px;text-align:left}
+.list{display:grid;gap:8px}.item{background:#f8fafc;border:1px solid var(--line);border-radius:11px;padding:10px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.pill{font-size:11px;font-weight:800;padding:4px 7px;border-radius:999px;white-space:nowrap}.green{background:#dcfce7;color:#166534}.yellow{background:#fef3c7;color:#92400e}.blue{background:#dbeafe;color:#1d4ed8}.red{background:#fee2e2;color:#991b1b}.purple{background:#f3e8ff;color:#7e22ce}
+input,select,textarea{width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;font:inherit}textarea{min-height:170px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.section{margin-top:14px}.notice{padding:10px;border-radius:10px;background:#eff6ff;color:#1e3a8a;font-size:13px}
+.subject{border:1px solid var(--line);border-radius:13px;margin:10px 0;overflow:hidden}.subject>div:first-child{padding:10px;background:#f8fafc;font-weight:800}
+.topicline{display:grid;grid-template-columns:2fr .75fr .75fr .95fr .75fr;gap:8px;padding:8px 10px;border-top:1px solid var(--line);align-items:center}
+.timer{font-size:52px;font-weight:900;text-align:center;letter-spacing:2px;margin:12px 0}.timer-state{text-align:center;font-weight:700}
+.progress-ring{font-size:38px;font-weight:900;text-align:center;padding:20px}
+.kpi{padding:12px;background:#f8fafc;border-radius:12px;border:1px solid var(--line)}
+.small{font-size:12px}.danger-text{color:var(--bad);font-weight:700}
+.modal{display:none;position:fixed;inset:0;background:#0009;padding:14px;z-index:50;overflow:auto}.modal.open{display:block}.box{max-width:860px;margin:25px auto;background:#fff;border-radius:18px;padding:18px}
+canvas{max-width:100%}
+@media(max-width:950px){.grid{grid-template-columns:repeat(2,1fr)}.two,.three{grid-template-columns:1fr}.topicline{grid-template-columns:1fr 80px 80px 90px 90px}}
+@media(max-width:520px){.grid{grid-template-columns:1fr 1fr}.row{grid-template-columns:1fr}.topicline{grid-template-columns:1fr}.timer{font-size:42px}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<div><h1>📚 Controle de Estudos V4</h1><div style="font-size:12px;opacity:.8">Motor de preparação adaptativa</div></div>
+<div class="actions"><button class="secondary" onclick="openM('editModal')">📄 Edital</button><button class="secondary" id="installBtn" style="display:none" onclick="installApp()">📲 Instalar</button><button class="primary" onclick="openM('studyModal')">▶ Estudar</button></div>
+</div></header>
+
+<main>
+<section class="grid">
+<div class="card"><div class="muted">Índice de preparação</div><div class="metric" id="readiness">0</div><div class="muted">0–100</div></div>
+<div class="card"><div class="muted">Edital estudado</div><div class="metric" id="coverage">0%</div><div id="coverageMeta" class="muted"></div></div>
+<div class="card"><div class="muted">Domínio estimado</div><div class="metric" id="mastery">0%</div><div class="muted">baseado no histórico</div></div>
+<div class="card"><div class="muted">Questões</div><div class="metric" id="accuracy">0%</div><div id="accuracyMeta" class="muted"></div></div>
+</section>
+
+<section class="section grid two">
+<div class="card">
+<div class="title"><h2>🎯 Onde gastar seu tempo</h2><button class="secondary" onclick="renderAll()">Atualizar</button></div>
+<div id="recommendations" class="list"></div>
+</div>
+<div class="card">
+<div class="title"><h2>⚠️ Alertas inteligentes</h2></div>
+<div id="alerts" class="list"></div>
+</div>
+</section>
+
+<section class="section card">
+<div class="title"><h2>🔥 Modo reta final</h2><span id="finalMode" class="pill blue">Normal</span></div>
+<div class="row">
+<div><label>Data da prova</label><input id="examDate" type="date"></div>
+<div><label>Minutos líquidos disponíveis hoje</label><input id="daily" type="number" value="180" min="10"></div>
+</div>
+<div class="actions" style="margin-top:10px"><button class="primary" onclick="savePlan()">Atualizar planejamento</button></div>
+<div id="finalPlan" style="margin-top:12px"></div>
+</section>
+
+<section class="section card">
+<div class="title"><h2>🧠 Motor de revisão</h2><span class="muted">intervalo mínimo de 20 dias a partir de 80%</span></div>
+<div class="three">
+<div class="kpi"><b>Retenção estimada</b><div id="retentionKpi" class="metric" style="font-size:23px">0%</div></div>
+<div class="kpi"><b>Assuntos críticos</b><div id="criticalKpi" class="metric" style="font-size:23px">0</div></div>
+<div class="kpi"><b>Revisões vencidas</b><div id="overdueKpi" class="metric" style="font-size:23px">0</div></div>
+</div>
+<div style="margin-top:12px" class="muted">O intervalo agora considera desempenho histórico, quantidade de dados e queda recente de desempenho. O mínimo de 20 dias para 80–89% é mantido.</div>
+</section>
+
+<section class="section grid two">
+<div class="card"><div class="title"><h2>🔴 Revisões prioritárias</h2></div><div id="reviews" class="list"></div></div>
+<div class="card"><div class="title"><h2>❌ Caderno de erros</h2></div><div id="errors" class="list"></div></div>
+</section>
+
+<section class="section card">
+<div class="title"><h2>📚 Edital e domínio</h2><span id="topicCount" class="muted"></span></div>
+<div id="topics"></div>
+</section>
+
+<section class="section card">
+<div class="title"><h2>📈 Evolução</h2></div>
+<canvas id="chart" height="180"></canvas>
+</section>
+
+<section class="section card">
+<div class="title"><h2>💾 Dados</h2></div>
+<div class="actions"><button class="secondary" onclick="exportData()">Exportar backup</button><button class="secondary" onclick="document.getElementById('backup').click()">Importar backup</button><input id="backup" type="file" accept="application/json" style="display:none" onchange="importData(this)"><button class="danger" onclick="resetAll()">Apagar tudo</button></div>
+<div class="muted" style="margin-top:8px">Nesta V4 os dados são persistidos localmente. Backup JSON permite transportar o histórico. Login e sincronização em nuvem ficam preparados para a próxima etapa.</div>
+</section>
+</main>
+
+<div class="modal" id="editModal"><div class="box">
+<h2>📄 Importar edital</h2><div class="notice">PDF → texto → estrutura. Revise antes de confirmar. PDFs escaneados podem precisar de OCR.</div>
+<input type="file" id="pdf" accept="application/pdf" style="margin-top:10px" onchange="readPdf(this)">
+<textarea id="editText" placeholder="LÍNGUA PORTUGUESA
+1. Interpretação de textos
+2. Coesão e coerência
+
+DIREITO CONSTITUCIONAL
+1. Direitos fundamentais
+2. Organização do Estado" style="margin-top:10px"></textarea>
+<div id="pdfMsg" class="muted"></div><div class="actions"><button class="primary" onclick="parseAndImport()">Processar edital</button><button class="secondary" onclick="loadExample()">Exemplo</button><button class="secondary" onclick="closeM('editModal')">Fechar</button></div>
+</div></div>
+
+<div class="modal" id="studyModal"><div class="box">
+<h2>▶ Sessão de estudo</h2>
+<div class="row"><div><label>Matéria</label><select id="studySubject" onchange="updateStudyTopics()"></select></div><div><label>Assunto</label><select id="studyTopic"></select></div></div>
+<div class="timer" id="timer">00:00:00</div><div class="timer-state" id="timerState">Parado</div>
+<div class="actions" style="justify-content:center;margin-top:8px"><button class="primary" onclick="startTimer()">Iniciar</button><button class="secondary" onclick="pauseTimer()">Pausar</button><button class="danger" onclick="finishTimer()">Finalizar e registrar</button></div>
+<div class="row" style="margin-top:14px"><div><label>Questões</label><input id="qtd" type="number" min="0" value="20"></div><div><label>Acertos</label><input id="hit" type="number" min="0" value="16"></div></div>
+<div style="margin-top:10px"><label>Tipo do erro predominante (opcional)</label><select id="errorType"><option value="">Sem registro</option><option>Não sabia</option><option>Confundi conceitos</option><option>Interpretação</option><option>Distração</option><option>Chute</option></select></div>
+<div class="notice" style="margin-top:12px">Recomendação: na revisão, tente lembrar o conteúdo antes de consultar o material. Isso alimenta o histórico de retenção.</div>
+</div></div>
+
+<script>
+async function ensurePdfJs(){
+  if(window.pdfjsLib) return window.pdfjsLib;
+  try{
+    const mod=await import('./pdf.min.mjs');
+    mod.GlobalWorkerOptions.workerSrc='./pdf.worker.min.mjs';
+    window.pdfjsLib=mod; return mod;
+  }catch(e){}
+  try{
+    const mod=await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs');
+    mod.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs';
+    window.pdfjsLib=mod; return mod;
+  }catch(e){throw new Error('Leitor PDF indisponível offline. Abra o aplicativo uma vez com internet para carregar o componente PDF.');}
+}
+</script>
+<script>
+let state={version:4,examDate:'',daily:180,topics:[],sessions:[],errors:[]};
+let timerId=null,timerSeconds=0,timerRunning=false;
+
+const KEY='controle_estudos_v4';
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.topics)state=s}catch(e){}renderAll()}
+function d0(){return new Date().toISOString().slice(0,10)}
+function addDays(d,n){const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)}
+function daysBetween(a,b){return Math.max(0,Math.ceil((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000))}
+function pct(a,b){return b?Math.round(a/b*100):0}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function dateBR(d){return d?new Date(d+'T12:00:00').toLocaleDateString('pt-BR'):'—'}
+function openM(id){document.getElementById(id).classList.add('open')}
+function closeM(id){document.getElementById(id).classList.remove('open')}
+
+function historyFor(tid){return state.sessions.filter(s=>s.topicId===tid&&s.q>0)}
+function calcMastery(t){
+const hs=historyFor(t.id); if(!hs.length)return 0;
+const last=hs.slice(-5),weights=last.map((_,i)=>i+1);
+let sum=0,w=0;last.forEach((s,i)=>{sum+=s.acc*weights[i];w+=weights[i]});
+let base=sum/w;
+let volume=Math.min(1,hs.reduce((a,s)=>a+s.q,0)/60);
+let recency=1;
+if(t.lastStudy){const age=daysBetween(t.lastStudy,d0());recency=Math.max(.45,Math.exp(-age/35))}
+let consistency=1;
+if(last.length>=3){const vals=last.map(s=>s.acc),avg=vals.reduce((a,b)=>a+b,0)/vals.length;const variance=vals.reduce((a,b)=>a+(b-avg)**2,0)/vals.length;consistency=Math.max(.65,1-Math.sqrt(variance)/100)}
+return Math.round(base*(.75+.25*volume)*(.88+.12*consistency)*(.85+.15*recency));
+}
+function calcInterval(t,score){
+const hs=historyFor(t.id),totalQ=hs.reduce((a,s)=>a+s.q,0),n=hs.length,mastery=calcMastery(t);
+if(score<50)return 1;if(score<60)return 3;if(score<70)return 7;if(score<80)return 14;
+let min=20;if(score>=90)min=25;if(score>=95)min=30;
+let bonus=Math.min(18,Math.round((mastery-80)*0.6)+Math.min(10,n));
+let prior=hs.length>=2?hs[hs.length-2].acc:null;
+if(prior!=null&&score-prior<=-15)bonus=Math.min(bonus,0);
+return Math.max(min,min+bonus);
+}
+function readiness(){
+const total=state.topics.length;if(!total)return 0;
+const coverage=pct(state.topics.filter(t=>t.studied).length,total);
+const mastery=state.topics.length?Math.round(state.topics.reduce((a,t)=>a+calcMastery(t),0)/total):0;
+const q=state.sessions.reduce((a,s)=>a+s.q,0),h=state.sessions.reduce((a,s)=>a+s.h,0),accuracy=pct(h,q);
+const overdue=state.topics.filter(t=>t.nextReview&&t.nextReview<=d0()).length;
+let retention=avgRetention();
+let reviewScore=total?Math.max(0,100-Math.min(100,overdue/Math.max(1,total)*100)):0;
+let base=.28*coverage+.32*mastery+.18*accuracy+.12*retention+.10*reviewScore;
+if(state.examDate){const days=daysBetween(d0(),state.examDate);if(days<30)base=Math.min(100,base+5);if(days<14)base=Math.min(100,base+8)}
+return Math.round(Math.max(0,Math.min(100,base)));
+}
+function avgRetention(){
+const ts=state.topics.filter(t=>t.score!=null);if(!ts.length)return 0;
+let vals=ts.map(t=>{if(!t.nextReview)return t.score;let age=daysBetween(t.lastStudy||d0(),d0());return Math.max(0,Math.min(100,t.score*Math.exp(-age/50)))});return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length)
+}
+function urgency(t){
+let m=calcMastery(t), overdue=t.nextReview&&t.nextReview<=d0()?25:0, score=t.score==null?0:Math.max(0,80-t.score), decline=0;
+const hs=historyFor(t.id);if(hs.length>=2&&hs.at(-1).acc<hs.at(-2).acc-10)decline=20;
+let freshness=t.lastStudy?Math.min(15,daysBetween(t.lastStudy,d0())/3):15;
+return Math.round(overdue+score*0.8+decline+(100-m)*0.35+freshness);
+}
+function renderAll(){
+const total=state.topics.length,stud=state.topics.filter(t=>t.studied).length,q=state.sessions.reduce((a,s)=>a+s.q,0),h=state.sessions.reduce((a,s)=>a+s.h,0);
+document.getElementById('readiness').textContent=readiness();document.getElementById('coverage').textContent=pct(stud,total)+'%';document.getElementById('coverageMeta').textContent=stud+' estudados · '+(total-stud)+' restantes';
+document.getElementById('mastery').textContent=(total?Math.round(state.topics.reduce((a,t)=>a+calcMastery(t),0)/total):0)+'%';document.getElementById('accuracy').textContent=pct(h,q)+'%';document.getElementById('accuracyMeta').textContent=h+'/'+q+' acertos';
+const rev=state.topics.filter(t=>t.nextReview&&t.nextReview<=d0()).sort((a,b)=>urgency(b)-urgency(a));
+document.getElementById('overdueKpi').textContent=rev.length;document.getElementById('criticalKpi').textContent=state.topics.filter(t=>calcMastery(t)<60).length;document.getElementById('retentionKpi').textContent=avgRetention()+'%';
+renderRecommendations();renderAlerts();renderReviews();renderErrors();renderTopics();renderPlan();renderChart();populateStudy();
+}
+function renderRecommendations(){
+const arr=[...state.topics].sort((a,b)=>urgency(b)-urgency(a)).slice(0,6);
+document.getElementById('recommendations').innerHTML=arr.length?arr.map((t,i)=>`<div class="item"><div><b>${i+1}. ${esc(t.name)}</b><div class="muted">${esc(t.subject)} · domínio ${calcMastery(t)} · urgência ${urgency(t)}</div></div><span class="pill ${urgency(t)>75?'red':urgency(t)>50?'yellow':'blue'}">${t.studied?'Reforçar':'Novo'}</span></div>`).join(''):'<div class="muted">Importe seu edital.</div>';
+}
+function renderAlerts(){
+let arr=[];const total=state.topics.length;let stud=state.topics.filter(t=>t.studied).length;
+if(total&&pct(stud,total)<30)arr.push('Você ainda tem menos de 30% do edital estudado. Priorize cobertura antes de aprofundar detalhes.');
+state.topics.forEach(t=>{let h=historyFor(t.id);if(h.length>=2&&h.at(-1).acc<h.at(-2).acc-15)arr.push(`Queda de desempenho em ${t.name}: ${h.at(-2).acc}% → ${h.at(-1).acc}%.`);});
+if(state.examDate){let d=daysBetween(d0(),state.examDate);if(d<=30)arr.push(`Reta final: faltam ${d} dias. A prioridade deve migrar para questões, revisões e pontos fracos.`);}
+document.getElementById('alerts').innerHTML=arr.length?arr.slice(0,8).map(x=>`<div class="item"><span>⚠️</span><div>${esc(x)}</div></div>`).join(''):'<div class="muted">Nenhum alerta crítico.</div>';
+}
+function renderReviews(){
+const arr=state.topics.filter(t=>t.nextReview&&t.nextReview<=d0()).sort((a,b)=>urgency(b)-urgency(a)).slice(0,10);
+document.getElementById('reviews').innerHTML=arr.length?arr.map(t=>`<div class="item"><div><b>${esc(t.name)}</b><div class="muted">${esc(t.subject)} · ${t.score}% · domínio ${calcMastery(t)} · ${dateBR(t.nextReview)}</div></div><button class="primary" onclick="review('${t.id}')">Revisar</button></div>`).join(''):'<div class="muted">Nenhuma revisão vencida.</div>';
+}
+function renderErrors(){
+const e=state.errors.slice(-12).reverse();
+document.getElementById('errors').innerHTML=e.length?e.map(x=>`<div class="item"><div><b>${esc(x.topicName)}</b><div class="muted">${esc(x.type||'Erro')} · ${dateBR(x.date)}</div></div><span class="pill red">erro</span></div>`).join(''):'<div class="muted">Os erros registrados aparecerão aqui.</div>';
+}
+function renderTopics(){
+let by={};state.topics.forEach(t=>(by[t.subject]??=[]).push(t));document.getElementById('topicCount').textContent=state.topics.length+' assuntos';
+document.getElementById('topics').innerHTML=Object.entries(by).map(([s,a])=>`<div class="subject"><div>${esc(s)} <span class="muted">— ${a.filter(t=>t.studied).length}/${a.length}</span></div>${a.map(t=>`<div class="topicline"><div><b>${esc(t.name)}</b><div class="muted">domínio ${calcMastery(t)}</div></div><div>${t.score==null?'—':t.score+'%'}</div><div>${t.lastStudy?dateBR(t.lastStudy):'—'}</div><div>${t.nextReview?dateBR(t.nextReview):'—'}</div><div>${t.studied?'<span class="pill green">Estudado</span>':'<span class="pill red">Novo</span>'}</div></div>`).join('')}</div>`).join('');
+}
+function renderPlan(){
+if(!state.examDate){document.getElementById('finalMode').textContent='Normal';document.getElementById('finalPlan').innerHTML='<div class="muted">Informe a data da prova.</div>';return}
+const d=daysBetween(d0(),state.examDate),left=state.topics.filter(t=>!t.studied).length,over=state.topics.filter(t=>t.nextReview&&t.nextReview<=d0()).length;
+let mode=d<=7?'48H':d<=14?'RETA FINAL':d<=30?'INTENSIVO':d<=60?'ACELERAÇÃO':'NORMAL';document.getElementById('finalMode').textContent=mode;
+let newPerDay=Math.max(0,Math.ceil(left/Math.max(1,d))),revisionShare=d<=14?.65:d<=30?.5:.35;
+document.getElementById('finalPlan').innerHTML=`<div class="grid" style="grid-template-columns:repeat(4,1fr)">
+<div class="kpi"><b>${d}</b><div class="muted">dias restantes</div></div><div class="kpi"><b>${left}</b><div class="muted">assuntos novos</div></div><div class="kpi"><b>${newPerDay}</b><div class="muted">novos/dia</div></div><div class="kpi"><b>${Math.round((state.daily||180)*revisionShare)} min</b><div class="muted">revisão/dia sugerida</div></div></div>
+<div class="notice" style="margin-top:10px">${d<=14?'Evite abrir muitos assuntos novos. Priorize questões, erros e revisões de alta urgência.':d<=30?'Aumente questões e consolidação. Novos conteúdos devem ser seletivos.':'Mantenha cobertura do edital enquanto eleva gradualmente a retenção.'}</div>`;
+}
+function renderChart(){
+const c=document.getElementById('chart'),ctx=c.getContext('2d'),w=c.width=c.clientWidth*2,h=c.height=180*2;ctx.clearRect(0,0,w,h);const vals=state.sessions.slice(-20);if(!vals.length){ctx.font='28px system-ui';ctx.fillStyle='#64748b';ctx.fillText('Registre sessões para ver sua evolução',30,120);return}
+ctx.strokeStyle='#2563eb';ctx.lineWidth=4;ctx.beginPath();vals.forEach((s,i)=>{let x=20+i*(w-40)/Math.max(1,vals.length-1),y=h-20-(s.acc/100)*(h-40);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();
+}
+let timerAccumulated=0;
+function fmtTimer(s){let h=Math.floor(s/3600),m=Math.floor(s%3600/60),sec=s%60;return [h,m,sec].map(x=>String(x).padStart(2,'0')).join(':')}
+function startTimer(){if(timerRunning)return;timerRunning=true;document.getElementById('timerState').textContent='Estudando';timerId=setInterval(()=>{timerSeconds++;document.getElementById('timer').textContent=fmtTimer(timerSeconds)},1000)}
+function pauseTimer(){timerRunning=false;clearInterval(timerId);document.getElementById('timerState').textContent='Pausado'}
+function finishTimer(){
+pauseTimer();const topic=state.topics.find(t=>t.id===document.getElementById('studyTopic').value);if(!topic){alert('Selecione um assunto.');return}
+const mins=Math.max(1,Math.round(timerSeconds/60)),q=+document.getElementById('qtd').value||0,h=Math.min(q,+document.getElementById('hit').value||0),type=document.getElementById('errorType').value;
+topic.studied=true;topic.lastStudy=d0();
+if(q){const acc=pct(h,q);topic.score=acc;topic.nextReview=addDays(d0(),Math.round(calcInterval(topic,acc)));if(type&&h<q)state.errors.push({date:d0(),topicId:topic.id,topicName:topic.name,type,acc});}
+state.sessions.push({date:d0(),topicId:topic.id,mins,q,h,acc:q?pct(h,q):0});save();timerSeconds=0;document.getElementById('timer').textContent='00:00:00';document.getElementById('timerState').textContent='Parado';closeM('studyModal');renderAll();
+}
+function review(id){
+const t=state.topics.find(x=>x.id===id);if(!t)return;
+let q=prompt('Questões da revisão','20');if(q===null)return;let h=prompt('Acertos','16');if(h===null)return;
+q=+q||0;h=Math.min(q,+h||0);const acc=q?pct(h,q):t.score;t.lastStudy=d0();if(q){t.score=acc;t.nextReview=addDays(d0(),Math.round(calcInterval(t,acc)));}
+save();renderAll();
+}
+function populateStudy(){const ss=[...new Set(state.topics.map(t=>t.subject))];document.getElementById('studySubject').innerHTML=ss.map(s=>`<option>${esc(s)}</option>`).join('');updateStudyTopics()}
+function updateStudyTopics(){const s=document.getElementById('studySubject').value;document.getElementById('studyTopic').innerHTML=state.topics.filter(t=>t.subject===s).map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')}
+
+function loadExample(){document.getElementById('editText').value=`LÍNGUA PORTUGUESA
+1. Interpretação de textos
+2. Coesão e coerência
+3. Concordância
+4. Regência
+5. Crase
+
+DIREITO CONSTITUCIONAL
+1. Direitos fundamentais
+2. Organização do Estado
+3. Poder Legislativo
+4. Poder Executivo
+5. Poder Judiciário
+
+DIREITO ADMINISTRATIVO
+1. Atos administrativos
+2. Poderes administrativos
+3. Licitações
+4. Contratos administrativos
+
+INFORMÁTICA
+1. Redes de computadores
+2. Sistemas operacionais
+3. Segurança da informação
+4. Banco de dados
+
+RACIOCÍNIO LÓGICO
+1. Proposições
+2. Equivalências
+3. Análise combinatória
+4. Probabilidade`}
+function cleanLabel(x){return x.replace(/^[-•●▪]\s*/,'').replace(/^\s*\d+(?:\.\d+)*[\).]?\s+/,'').replace(/\s+/g,' ').trim()}
+function isNumbered(line){return /^[-•●▪]\s*\d+(?:\.\d+)*[\).]?\s+/.test(line)||/^\d+(?:\.\d+)*\s+/.test(line)}
+function isHeading(line){
+ const x=line.replace(/\s+/g,' ').trim(); if(!x||x.length<3)return false;
+ if(isNumbered(x))return false;
+ if(/^\d+\s+[A-ZÁÀÂÃÉÊÍÓÔÕÚÜÇ]/.test(x))return false;
+ const letters=x.replace(/[^A-Za-zÀ-ÿ]/g,''); if(!letters)return false;
+ const upper=letters===letters.toUpperCase();
+ const short=x.split(/\s+/).length<=10;
+ return upper && short;
+}
+function parseBlock(text){
+ const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+ let subject='',items=[];
+ for(let line of lines){
+   line=line.replace(/\s{2,}/g,' ').trim();
+   if(isHeading(line)){subject=cleanLabel(line);continue;}
+   if(subject && (isNumbered(line)||/^[-•●▪]\s+/.test(line))){
+      // The PDF may have several numbered items on one line.
+      const chunks=line.split(/(?=\b\d+(?:\.\d+)*\s+)/g).map(x=>x.trim()).filter(Boolean);
+      for(const c of chunks){
+        if(!isNumbered(c))continue;
+        const name=cleanLabel(c); if(name)items.push({subject,name});
+      }
+   }
+ }
+ return items;
+}
+function parseAndImport(){
+ const raw=document.getElementById('editText').value.replace(/\u00a0/g,' ').trim();
+ if(!raw){alert('Selecione um PDF primeiro.');return;}
+ let items=parseBlock(raw);
+ // Fallback especial para PDFs que perderam as quebras de linha: identifica cabeçalhos em caixa alta.
+ if(items.length<10){
+   const text=raw.replace(/\s+/g,' ');
+   const re=/\b([A-ZÁÀÂÃÉÊÍÓÔÕÚÜÇ][A-ZÁÀÂÃÉÊÍÓÔÕÚÜÇ0-9 .&/()'’-]{2,})\s+(?=\d+(?:\.\d+)*\s+)/g;
+   const heads=[];let m;while((m=re.exec(text)))heads.push({subject:m[1].trim(),start:m.index,end:re.lastIndex});
+   const cleanHeads=heads.filter(h=>h.subject.split(/\s+/).length<=10);
+   for(let i=0;i<cleanHeads.length;i++){
+     const h=cleanHeads[i], end=i+1<cleanHeads.length?cleanHeads[i+1].start:text.length;
+     let part=text.slice(h.end,end);
+     const chunks=part.split(/(?=\b\d+(?:\.\d+)*\s+)/g);
+     for(const c of chunks){if(/^\d+(?:\.\d+)*\s+/.test(c)){const name=cleanLabel(c);if(name)items.push({subject:cleanLabel(h.subject),name});}}
+   }
+ }
+ const unique=[],seen=new Set();for(const x of items){const key=x.subject+'|'+x.name;if(!seen.has(key)){seen.add(key);unique.push(x);}}
+ if(!unique.length){alert('Não consegui separar as matérias. Tente um PDF com texto selecionável (não apenas imagem).');return;}
+ const subjects=[...new Set(unique.map(x=>x.subject))];
+ state.topics=unique.map((x,i)=>({id:'t'+Date.now()+i,subject:x.subject,name:x.name,studied:false,score:null,nextReview:null,lastStudy:null}));
+ state.sessions=[];state.errors=[];save();closeM('editModal');renderAll();
+ alert(`Edital reconhecido!\\n\\n${subjects.length} matérias\\n${unique.length} assuntos`);
+}
+
+async function readPdf(input){
+const f=input.files[0];if(!f)return;document.getElementById('pdfMsg').textContent='Preparando leitor PDF...';
+try{
+const pdfjs=await ensurePdfJs();
+document.getElementById('pdfMsg').textContent='Lendo PDF...';
+const pdf=await pdfjs.getDocument({data:await f.arrayBuffer()}).promise;let text='';
+for(let i=1;i<=pdf.numPages;i++){
+ const page=await pdf.getPage(i),content=await page.getTextContent();
+ let lastY=null,line='';
+ for(const item of content.items){
+   const y=item.transform?Math.round(item.transform[5]):null;
+   if(lastY!==null && y!==null && Math.abs(y-lastY)>3){text+=line.trim()+'\n';line='';}
+   line+=(line?' ':'')+item.str; lastY=y;
+ }
+ if(line.trim())text+=line.trim()+'\n';
+}
+document.getElementById('editText').value=text;document.getElementById('pdfMsg').textContent=pdf.numPages+' páginas lidas. Revise e processe.'
+}catch(e){document.getElementById('pdfMsg').textContent=e.message||'Não foi possível extrair o PDF.';}}
+
+function savePlan(){state.examDate=document.getElementById('examDate').value;state.daily=+document.getElementById('daily').value||180;save();renderAll()}
+function exportData(){const b=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='backup-controle-estudos-v4.json';a.click();URL.revokeObjectURL(u)}
+function importData(input){const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const x=JSON.parse(r.result);if(!x.topics)throw 0;state=x;save();renderAll();alert('Backup importado.')}catch(e){alert('Arquivo inválido.')}};r.readAsText(f)}
+function resetAll(){if(confirm('Apagar todo o histórico deste aparelho?')){state={version:4,examDate:'',daily:180,topics:[],sessions:[],errors:[]};save();renderAll()}}
+let deferredInstall=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;document.getElementById('installBtn').style.display='inline-block';});
+async function installApp(){if(!deferredInstall)return;deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;document.getElementById('installBtn').style.display='none';}
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}));}
+load();
+</script>
+</body>
+</html>
